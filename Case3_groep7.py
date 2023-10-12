@@ -13,6 +13,7 @@ Created on Mon Oct  9 12:33:34 2023
 import numpy as np
 import pandas as pd
 import datetime as dt
+from PIL import Image
 
 import streamlit as st
 import folium
@@ -24,7 +25,6 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 from branca.element import Template, MacroElement
 
-import requests
 from sodapy import Socrata
 
 
@@ -34,7 +34,10 @@ from sodapy import Socrata
 ############################################################################################################################################################
 
 
+path = 'C:/Users/bartd/OneDrive/Bureaublad/Data Science (Minor)/' #Path moet aangepast worden.
+
 laadpaaldata = pd.read_csv('laadpaaldata.csv')
+opencharge = pd.read_csv('opencharge_opgeschoont.csv')
 
 
 ############################################################################################################################################################
@@ -46,36 +49,6 @@ client = Socrata("opendata.rdw.nl", None)
 results = client.get("w4rt-e856", limit=450000)
 autoinfo = pd.DataFrame.from_records(results)
 
-client = Socrata("opendata.rdw.nl", None)
-results = client.get("vsxf-rq7p", limit=16000000)
-benzineinfo = pd.DataFrame.from_records(results)
-
-url = 'https://opendata.rdw.nl/resource/db8s-mw3u.json?$select=Kenteken,datum_eerste_toelating&$limit=17000000'
-
-response = requests.get(url)
-if response.status_code == 200:
-    data = response.json()
-    toelating = pd.DataFrame(data) 
-else:
-    print(f"Error: {response.status_code}")
-    print(response.text)  # Print the error message from the API if available
-    
-    
-api_key = '879b1725-4e7b-4b07-992e-09c2a7479768'
-# API endpoint URL with corrected query parameters
-url = 'https://api.openchargemap.io/v3/poi/?output=json&countrycode=NL&maxresults=7909&compact=true&verbose=false&key=93b912b5-9d70-4b1f-960b-fb80a4c9c017'
-
-# Make a GET request to retrieve charging station data
-response = requests.get(url)
-
-# Check for successful response
-if response.status_code == 200:
-    charging_stations = response.json()
-    opencharge = pd.json_normalize(charging_stations)
-    # Process the charging station data as needed
-else:
-    print(f"Error: {response.status_code}")
-    print(response.text)  # Print the error message from the API if available
 
 ############################################################################################################################################################
 ##De data opschonen.
@@ -132,59 +105,8 @@ kolommen_verwijderen = ['hoogte_voertuig', 'vervaldatum_apk_dt', 'tenaamstellen_
                        'vervaldatum_apk']
 
 for kolom in kolommen_verwijderen:
-    autoinfo = autoinfo.drop(kolom, axis = 1) #Verwijderen
-    
-    
+    autoinfo = autoinfo.drop(kolom, axis = 1) #Verwijderen  
 
-
-
-
-kolommen = opencharge.keys()
-for kolom in kolommen:
-    if opencharge[kolom].isna().sum() >= 3000:
-        opencharge = opencharge.drop(kolom, axis = 1)
-        
-kolommen = opencharge.keys()
-kolom_data = [] #Data als in een datum meerdere data.
-for kolom in kolommen:
-    sub = 'Date'
-    if sub in kolom:
-        print(kolom)
-        kolom_data.append(kolom)
-        
-for kolom in kolom_data:
-    opencharge[kolom] = pd.to_datetime(opencharge[kolom]).dt.strftime('%Y-%m-%d')
-    opencharge[kolom] = pd.to_datetime(opencharge[kolom])
-    
-opencharge = opencharge.drop('IsRecentlyVerified', axis = 1)
-opencharge = opencharge.drop('UsageCost', axis = 1) 
-opencharge['AddressInfo.Town'] = opencharge['AddressInfo.Town'].replace('City', 'Lelystad')
-
-opencharge = opencharge.drop('AddressInfo.DistanceUnit', axis = 1)
-
-kolommen_verwijderen = ['AddressInfo.CountryID', 'AddressInfo.RelatedURL', 'OperatorsReference', 'DataProvidersReference', 
-                        'SubmissionStatusTypeID', 'DataQualityLevel', 'DataProviderID', 'Connections']
-for kolom in kolommen_verwijderen:
-    opencharge = opencharge.drop(kolom, axis = 1)
-    
-    
-    
-    
-    
-    
-    
-benzineinfo = benzineinfo.drop('klasse_hybride_elektrisch_voertuig', axis=1)
-toelating.dropna(inplace=True)
-
-# Rename 'Kenteken' to 'kenteken' in the 'toelating' DataFrame
-toelating.rename(columns={'Kenteken': 'kenteken'}, inplace=True)
-
-# Merge the DataFrames based on the 'kenteken' column
-merged_df = benzineinfo.merge(toelating, on='kenteken', how='inner')
-
-benzineinfo = merged_df
-benzineinfo['datum_eerste_toelating'] = pd.to_datetime(benzineinfo['datum_eerste_toelating'], format='%Y%m%d')
-benzineinfo['jaar'] = benzineinfo['datum_eerste_toelating'].dt.year
 
 
 
@@ -220,8 +142,6 @@ for kolom in kolom_date:
     opencharge[kolom] = pd.to_datetime(opencharge[kolom]).dt.strftime('%Y-%m-%d')
     opencharge[kolom] = pd.to_datetime(opencharge[kolom])
 
-#Benzineinfo datetime aanpassen.
-benzineinfo['datum_eerste_toelating'] = pd.to_datetime(benzineinfo['datum_eerste_toelating'], format='%Y-%m-%d', errors='coerce')
 
 ############################################################################################################################################################
 ############################################################################################################################################################
@@ -249,7 +169,6 @@ def convert_df(df):
 csv_laadpaaldata = convert_df(laadpaaldata)
 csv_autoinfo = convert_df(autoinfo)
 csv_opencharge = convert_df(opencharge)
-csv_benzineinfo = convert_df(benzineinfo)
 
 
 st.sidebar.title('Referenties')
@@ -270,7 +189,6 @@ st.sidebar.download_button(label="Autoinfo.csv", data=csv_autoinfo, file_name='d
 st.sidebar.divider()
 st.sidebar.subheader("Informatie brandstof")
 st.sidebar.write("Deze dataset is een opgeschoonde samengevoegde versie van 2 andere datasets, beiden afkomstig van het RDW. De eerste is een dataset die het soort brandstof weergeeft(https://opendata.rdw.nl/Voertuigen/Elektrische-auto-s/vsxf-rq7p ), en de andere is de kentekeninformatie, waarbij ook de tenaamstelling staat (https://opendata.rdw.nl/Voertuigen/Kenteken-tenaamstelling/db8s-mw3u ).")
-st.sidebar.download_button(label="Benzineinfo.csv", data=csv_benzineinfo, file_name='df_benzineinfo.csv', mime='text/csv')
 
 
 st.sidebar.divider()
@@ -292,45 +210,14 @@ tab_opencharge, tab_laadpaaldata, tab_autoinfo, tab_benzineinfo = st.tabs(["Open
 ############################################################################################################################################################
 
 
-brandstof_counts = benzineinfo['brandstof_omschrijving'].value_counts()
-percentage = (brandstof_counts / brandstof_counts.sum()) * 100
-
-data = {'Brandstof': percentage.index, 'Percentage': percentage.values}
-df = pd.DataFrame(data)
-brandstof_pie = px.pie(df, names='Brandstof', values='Percentage', title='Percentage van brandstof_omschrijving')
-#brandstof_pie.show()
+image1 = Image.open('brandstofpie.jpg')
+image2 = Image.open('brandstofline.jpg')
 
 
 with tab_benzineinfo:
-    st.subheader("Cumulatieve plot voor het totale aantal auto's tussen 1877 en 2023 op tijdstip x.")
-    # Add a sidebar with a slider for price range
-    year_range = st.slider("Selecteer een prijs-interval (in $)", 1877, 2023, (1877, 2023))
-
-
-benzine_groepen = benzineinfo.groupby(by=["brandstof_omschrijving", "jaar"]).size()
-benzine_groepen = pd.DataFrame(benzine_groepen)
-benzine_groepen = benzine_groepen.reset_index()
-benzine_groepen = benzine_groepen.rename(columns = {0: 'aantal'})
-benzine_groepen['totaal_tot_dan'] = 0
-
-
-for i in range(len(benzine_groepen)):
-    if benzine_groepen['brandstof_omschrijving'].iloc[i] == benzine_groepen['brandstof_omschrijving'].iloc[i - 1]:
-        benzine_groepen.loc[i, 'totaal_tot_dan'] = benzine_groepen.loc[i-1 , 'totaal_tot_dan'] + benzine_groepen.loc[i, 'aantal'] 
-    else:
-        benzine_groepen.loc[i, 'totaal_tot_dan'] = benzine_groepen.loc[i , 'aantal']
-        
-brandstof_line = px.line(benzine_groepen, x="jaar", y="totaal_tot_dan", color = 'brandstof_omschrijving', 
-              title="Cumulatieve lijndiagram voor aantal het auto's sinds 1877.", 
-              labels = {'brandstof_omschrijving': 'Brandstof', 'jaar':'Jaar','totaal_tot_dan':"Aantal auto's tot dan"})
-brandstof_line.update_xaxes(range=[year_range[0], year_range[1]]) 
-#brandstof_line.show()
-
-
-with tab_benzineinfo:
-    st.plotly_chart(brandstof_line)
+    st.image(image1)
     st.divider()
-    st.plotly_chart(brandstof_pie)
+    st.image(image2)
     
 
 
