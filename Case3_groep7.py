@@ -17,16 +17,11 @@ import datetime as dt
 import streamlit as st
 import folium
 from streamlit_folium import folium_static
-from folium import plugins
 from folium.plugins import MarkerCluster
 from scipy.stats import norm
-from ipywidgets import interact, widgets
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
-import plotly.figure_factory as ff
-import plotly.graph_objects as go
 from branca.element import Template, MacroElement
 
 import requests
