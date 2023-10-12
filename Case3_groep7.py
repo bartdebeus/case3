@@ -25,8 +25,6 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 from branca.element import Template, MacroElement
 
-from sodapy import Socrata
-
 
 
 ############################################################################################################################################################
@@ -39,15 +37,6 @@ path = 'C:/Users/bartd/OneDrive/Bureaublad/Data Science (Minor)/' #Path moet aan
 laadpaaldata = pd.read_csv('laadpaaldata.csv')
 opencharge = pd.read_csv('opencharge_opgeschoont.csv')
 
-
-############################################################################################################################################################
-##API aanroepen.
-############################################################################################################################################################
-
-
-client = Socrata("opendata.rdw.nl", None)
-results = client.get("w4rt-e856", limit=450000)
-autoinfo = pd.DataFrame.from_records(results)
 
 
 ############################################################################################################################################################
@@ -70,62 +59,10 @@ laadpaaldata = laadpaaldata.dropna()
 
 
 
-
-kolommen = autoinfo.keys()
-for kolom in kolommen:
-    if autoinfo[kolom].isna().sum() >= (0.1 * len(autoinfo)):
-        autoinfo = autoinfo.drop(kolom, axis = 1)
-        
-kolommen = autoinfo.keys()
-for kolom in kolommen:
-    if len(autoinfo[kolom].unique()) == 1:
-        autoinfo = autoinfo.drop(kolom, axis = 1) #Verwijderen
-        
-        
-kolommen = autoinfo.keys()
-kolom_data = []
-for kolom in kolommen:
-    sub = 'datum'
-    if sub in kolom:
-        print(kolom)
-        kolom_data.append(kolom)
-        
-for kolom in kolom_data:
-    autoinfo[kolom] = pd.to_datetime(autoinfo[kolom]).dt.strftime('%Y-%m-%d')
-    autoinfo[kolom] = pd.to_datetime(autoinfo[kolom])
-
-autoinfo[kolom_data]
-
-
-kolommen_verwijderen = ['hoogte_voertuig', 'vervaldatum_apk_dt', 'tenaamstellen_mogelijk', 
-                        'code_toelichting_tellerstandoordeel', 'tellerstandoordeel', 'maximum_massa_samenstelling',
-                       'wielbasis', 'vermogen_massarijklaar', 'volgnummer_wijziging_eu_typegoedkeuring', 
-                       'uitvoering', 'variant', 'typegoedkeuringsnummer', 'technische_max_massa_voertuig', 
-                       'massa_rijklaar', 'toegestane_maximum_massa_voertuig', 'massa_ledig_voertuig', 'tweede_kleur',
-                       'vervaldatum_apk']
-
-for kolom in kolommen_verwijderen:
-    autoinfo = autoinfo.drop(kolom, axis = 1) #Verwijderen  
-
-
-
-
-
 ############################################################################################################################################################
 ##De data waar aanpassen naar datetimes i.p.v. floats/objects.
 ############################################################################################################################################################
 
-
-#Autoinfo datetime aanpassen.
-kolommen = autoinfo.keys()
-kolom_datum = []
-for kolom in kolommen:
-    sub = 'datum'
-    if sub in kolom:
-        kolom_datum.append(kolom)
-for kolom in kolom_datum:
-    autoinfo[kolom] = pd.to_datetime(autoinfo[kolom]).dt.strftime('%Y-%m-%d')
-    autoinfo[kolom] = pd.to_datetime(autoinfo[kolom])   
 
 #Laadpaaldata datetime aanpassen.
 laadpaaldata['Started'] = pd.to_datetime(laadpaaldata['Started'], format='%Y-%m-%d %H:%M:%S')
@@ -167,7 +104,6 @@ def convert_df(df):
     return df.to_csv().encode('utf-8')
 
 csv_laadpaaldata = convert_df(laadpaaldata)
-csv_autoinfo = convert_df(autoinfo)
 csv_opencharge = convert_df(opencharge)
 
 
@@ -183,7 +119,6 @@ st.sidebar.download_button(label="Laadpaaldata.csv", data=csv_laadpaaldata, file
 st.sidebar.divider()
 st.sidebar.subheader("Informatie elektrische auto's")
 st.sidebar.write("De informatie van de elektrische auto's is afkomstig van de openbare dataset van het RDW (https://opendata.rdw.nl/Voertuigen/Elektrische-voertuigen/w4rt-e856 ).")
-st.sidebar.download_button(label="Autoinfo.csv", data=csv_autoinfo, file_name='df_autoinfo.csv', mime='text/csv')
 
 
 st.sidebar.divider()
@@ -313,18 +248,11 @@ with tab_laadpaaldata:
 ##Plaatjes autoinfo.
 ############################################################################################################################################################
 
+image3 = Image.open('automerk_plot.jpg')
 
-plot_merk = autoinfo.groupby(['merk']).size().reset_index(name='aantal')
-plot_merk = plot_merk[plot_merk['aantal'] > 1000]
-plot_merk = plot_merk.sort_values(by='aantal', ascending=False)
-
-automerk = px.histogram(plot_merk, x = 'merk', y='aantal', 
-                        labels = {'merk': 'Merk'})
-automerk.update_layout(title="Aantal verkochte auto's per merk.",
-                       yaxis_title = 'Aantal')
 
 with tab_autoinfo:
-    st.plotly_chart(automerk)
+    st.image(image3)
 
 
 ############################################################################################################################################################
@@ -516,13 +444,10 @@ st.divider()
 st.subheader('Preview dataframes')
 st.write('Een preview van de verschillende gebruikte dataframes, deze zijn downloadbaar bij de referenties. Alleen de benzineinfo dataframe staat er niet tussen, aangezien dit bestand te groot is voor de preview.')
 
-tab_opencharge1, tab_laadpaaldata2, tab_autoinfo3 = st.tabs(["Opencharge", "Laadpaaldata", "Autoinfo"])
+tab_opencharge1, tab_laadpaaldata2 = st.tabs(["Opencharge", "Laadpaaldata"])
 
 with tab_opencharge1:
     st.dataframe(opencharge)
     
 with tab_laadpaaldata2:
     st.dataframe(laadpaaldata)
-    
-with tab_autoinfo3:
-    st.dataframe(autoinfo)
