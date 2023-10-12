@@ -8,3 +8,4 @@ plotly==5.16.1
 branca==0.6.0
 requests==2.31.0
 sodapy==2.2.0
+scipy==1.22.4
