@@ -20,6 +20,7 @@ import folium
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
 from scipy.stats import norm
+from sklearn.linear_model import LinearRegression
 
 import matplotlib.pyplot as plt
 import plotly.express as px
