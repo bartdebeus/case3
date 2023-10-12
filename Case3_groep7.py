@@ -373,7 +373,7 @@ with tab_opencharge:
 ############################################################################################################################################################
 
 
-linear_reg = pd.read_pickle(f'{path}linear_reg.plk')
+linear_reg = pd.read_pickle('linear_reg.plk')
 
 st.divider()
 st.subheader('Autoprijs voorspellen')
