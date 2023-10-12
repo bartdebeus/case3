@@ -9,3 +9,4 @@ plotly==5.16.1
 requests==2.31.0
 sodapy==2.2.0
 scipy==1.6.2
+ipywidgets==7.6.3
