@@ -39,8 +39,6 @@ from sodapy import Socrata
 ############################################################################################################################################################
 
 
-path = 'C:/Users/bartd/OneDrive/Bureaublad/Data Science (Minor)/' #Path moet aangepast worden.
-
 laadpaaldata = pd.read_csv('laadpaaldata.csv')
 
 
